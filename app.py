@@ -88,6 +88,8 @@ def upload_file():
 
             # Add export_id to result for frontend
             result['export_id'] = export_id
+            # Add has_export_data flag inside result for frontend to pass to display function
+            result['has_export_data'] = True
 
             # Build appropriate message based on validation results
             message = 'File uploaded and processed successfully'
@@ -152,8 +154,13 @@ def download_template():
 def export_analisis():
     """
     Export analisis data pertumbuhan anak ke Excel dengan format analisis
+    Accepts optional 'periods' query parameter for filtering by periode
+    Example: /export-analisis?periods=JAN%202025&periods=FEB%202025
     """
     try:
+        # Get selected periods from query parameters
+        selected_periods = request.args.getlist('periods')
+        
         # Try to get export_id from session first (priority)
         export_id = session.get('export_id')
 
@@ -182,12 +189,18 @@ def export_analisis():
         if 'children' not in processed_data or not processed_data['children']:
             return jsonify({'error': 'Tidak ada data anak untuk di-export.'}), 400
 
+        # Filter data by selected periods if specified
+        if selected_periods:
+            filtered_data = filter_data_by_periods(processed_data, selected_periods)
+        else:
+            filtered_data = processed_data
+
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"Analisis_Pertumbuhan_Anak_{timestamp}.xlsx"
 
         # Export to Excel using the export function
-        success, result = export_analisis_from_json(processed_data, filename)
+        success, result = export_analisis_from_json(filtered_data, filename)
 
         if success:
             # Return the generated file for download
@@ -200,6 +213,39 @@ def export_analisis():
 
     except Exception as e:
         return jsonify({'error': f'Error during export: {str(e)}'}), 500
+
+def filter_data_by_periods(data, selected_periods):
+    """
+    Filter data to only include selected periods
+    """
+    if not selected_periods:
+        return data
+    
+    filtered_data = data.copy()
+    filtered_children = []
+    
+    for child in data.get('children', []):
+        filtered_child = child.copy()
+        if 'measurements' in child:
+            # Filter measurements by selected periods
+            filtered_measurements = [
+                m for m in child['measurements'] 
+                if m.get('periode') in selected_periods
+            ]
+            filtered_child['measurements'] = filtered_measurements
+        
+        # Only include child if they have measurements after filtering
+        if filtered_child.get('measurements'):
+            filtered_children.append(filtered_child)
+    
+    filtered_data['children'] = filtered_children
+    # Update totals
+    filtered_data['total_children'] = len(filtered_children)
+    if filtered_children:
+        total_measurements = sum(len(child.get('measurements', [])) for child in filtered_children)
+        filtered_data['total_periods'] = len(selected_periods)
+    
+    return filtered_data
 
 @app.route('/check-export-data')
 def check_export_data():

@@ -651,6 +651,17 @@
                     </button>
                 </div>
                 <div class="export-stats" id="exportStats"></div>
+                
+                <!-- Filter Periode -->
+                <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; border: 1px solid #4caf50;">
+                    <div style="margin-bottom: 10px;">
+                        <input type="checkbox" id="selectAllPeriods" onchange="toggleAllPeriods()" style="margin-right: 8px; cursor: pointer;">
+                        <label for="selectAllPeriods" style="cursor: pointer; font-weight: bold; color: #2e7d32;">
+                            ✓ Pilih Semua Periode
+                        </label>
+                    </div>
+                    <div id="periodFilterContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;"></div>
+                </div>
 
               </div>
 
@@ -1175,6 +1186,7 @@
         function showExportSection(data) {
             const exportSection = document.getElementById('exportSection');
             const exportStats = document.getElementById('exportStats');
+            const periodFilterContainer = document.getElementById('periodFilterContainer');
 
             const statsHtml = `
                 <div class="export-stat">
@@ -1196,6 +1208,36 @@
             `;
 
             exportStats.innerHTML = statsHtml;
+
+            // Generate period filter checkboxes
+            const periods = new Set();
+            if (data.children && Array.isArray(data.children)) {
+                data.children.forEach(child => {
+                    if (child.measurements && Array.isArray(child.measurements)) {
+                        child.measurements.forEach(measurement => {
+                            if (measurement.periode) {
+                                periods.add(measurement.periode);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Sort periods
+            const periodArray = Array.from(periods).sort();
+
+            // Create checkboxes
+            let periodHtml = '';
+            periodArray.forEach(periode => {
+                periodHtml += `
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 5px 8px; background: white; border-radius: 4px; border: 1px solid #c8e6c9;">
+                        <input type="checkbox" class="periode-checkbox" value="${periode}" checked style="margin-right: 8px; cursor: pointer;">
+                        <span style="font-size: 0.9em; color: #333;">${periode}</span>
+                    </label>
+                `;
+            });
+
+            periodFilterContainer.innerHTML = periodHtml;
             exportSection.style.display = 'block';
         }
 
@@ -1226,7 +1268,27 @@
             exportSection.style.display = 'block';
         }
 
+        function toggleAllPeriods() {
+            const selectAllCheckbox = document.getElementById('selectAllPeriods');
+            const periodCheckboxes = document.querySelectorAll('.periode-checkbox');
+            periodCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        function getSelectedPeriods() {
+            const periodCheckboxes = document.querySelectorAll('.periode-checkbox:checked');
+            return Array.from(periodCheckboxes).map(checkbox => checkbox.value);
+        }
+
         async function exportAnalisis() {
+            const selectedPeriods = getSelectedPeriods();
+            
+            if (selectedPeriods.length === 0) {
+                showMessage('error', '⚠️ Silakan pilih minimal satu periode untuk di-export!');
+                return;
+            }
+
             const exportBtn = document.getElementById('exportBtn');
             const exportBtnIcon = document.getElementById('exportBtnIcon');
             const exportBtnText = document.getElementById('exportBtnText');
@@ -1237,7 +1299,13 @@
             exportBtnText.textContent = 'Membuat Export...';
 
             try {
-                const response = await fetch('/export-analisis');
+                // Send selected periods as query parameters
+                const params = new URLSearchParams();
+                selectedPeriods.forEach(period => {
+                    params.append('periods', period);
+                });
+
+                const response = await fetch(`/export-analisis?${params.toString()}`);
 
                 if (response.ok) {
                     // Get filename from response headers or use default
