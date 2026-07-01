@@ -57,7 +57,7 @@ def load_who_table():
         return who_table
 
     try:
-        who_file_path = os.path.join(os.path.dirname(__file__), 'data master', 'Tabel_Pertumbuhan_Anak_0-2_Tahun.csv')
+        who_file_path = os.path.join(os.path.dirname(__file__), 'data_master', 'Tabel_Pertumbuhan_Anak_0-2_Tahun.csv')
         if os.path.exists(who_file_path):
             who_table = pd.read_csv(who_file_path, sep=';')
             print(f"WHO table loaded successfully from {who_file_path}")

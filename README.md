@@ -91,7 +91,7 @@ sitrack-stunting/
 ├── excel_to_json_anak.py     # Core conversion & assessment logic
 ├── templates/
 │   └── index.html           # Web interface template
-├── data master/
+├── data_master/
 │   └── Tabel_Pertumbuhan_Anak_0-2_Tahun.csv  # WHO reference data
 ├── data test/
 │   └── Data Test.xlsx       # Template reference file
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 ```
 
 ### WHO Reference Data
-File: `data master/Tabel_Pertumbuhan_Anak_0-2_Tahun.csv`
+File: `data_master/Tabel_Pertumbuhan_Anak_0-2_Tahun.csv`
 - Rentang umur: 0-59 bulan
 - Jenis kelamin: Laki-laki (L) & Perempuan (P)
 - Standar: WHO growth standards
@@ -155,7 +155,7 @@ File: `data master/Tabel_Pertumbuhan_Anak_0-2_Tahun.csv`
    - Change port in app.py
 
 3. **WHO Assessment Not Working**
-   - Pastikan file WHO reference ada di `data master/`
+   - Pastikan file WHO reference ada di `data_master/`
    - Check format data umur dan jenis kelamin
 
 ## 📄 License
