@@ -1,5 +1,4 @@
 from flask import Flask, request, render_template, jsonify, send_file, session
-from flask_session import Session
 import os
 from datetime import datetime
 from excel_to_json_anak import process_excel_to_json, validate_template_compliance
@@ -13,28 +12,32 @@ app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sitrek_stunting_secret_key_2024')
 
-# Platform-specific configurations (Railway / Vercel)
+# Platform-specific configurations
 is_railway = os.environ.get('RAILWAY_ENVIRONMENT', '') != ''
 is_vercel = os.environ.get('VERCEL_ENV', '') != ''
-if is_railway or is_vercel:
-    app.config['SESSION_FILE_DIR'] = '/tmp/flask_sessions'
-else:
-    app.config['SESSION_FILE_DIR'] = 'flask_sessions'
+is_serverless = is_railway or is_vercel
 
-# Use file-based session to avoid cookie size limit
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_THRESHOLD'] = 500
-app.config['SESSION_PERMANENT'] = False
-
-# Ensure directories exist
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+# Server-side storage for export data (in-memory, works on serverless within same instance)
+export_data_store = {}
 
 # Initialize session
-sess = Session(app)
+if is_vercel:
+    # Vercel serverless: use default cookie session (no Flask-Session needed)
+    pass
+else:
+    from flask_session import Session
+    if is_railway:
+        app.config['SESSION_FILE_DIR'] = '/tmp/flask_sessions'
+    else:
+        app.config['SESSION_FILE_DIR'] = 'flask_sessions'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_THRESHOLD'] = 500
+    app.config['SESSION_PERMANENT'] = False
+    os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
+    sess = Session(app)
 
-# Server-side storage for export data (Railway session fix)
-export_data_store = {}
+# Ensure upload directory exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
@@ -74,18 +77,19 @@ def upload_file():
             # Add validation information to the result
             result['validation'] = validation_result
 
-            # Store processed data in session and server storage for export functionality
-            session['processed_data'] = result
-            session['upload_timestamp'] = datetime.now().isoformat()
-
-            # Also store in server-side storage for Railway compatibility
+            # Store processed data for export functionality
             export_id = str(uuid.uuid4())
             export_data_store[export_id] = {
                 'data': result,
                 'upload_timestamp': datetime.now().isoformat(),
                 'created_at': datetime.now().isoformat()
             }
+            # Use session to store export_id reference (small data, safe for cookies)
             session['export_id'] = export_id
+            if not is_vercel:
+                # On non-serverless, also store full data in session as fallback
+                session['processed_data'] = result
+                session['upload_timestamp'] = datetime.now().isoformat()
 
             # Add export_id to result for frontend
             result['export_id'] = export_id
