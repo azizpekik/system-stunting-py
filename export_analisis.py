@@ -224,7 +224,7 @@ def export_to_excel_analisis(data, output_path=None):
     except Exception as e:
         return False, f"Error exporting to Excel: {str(e)}"
 
-def export_analisis_from_json(json_data, output_filename=None):
+def export_analisis_from_json(json_data, output_filename=None, output_dir=None):
     """
     Export analisis dari data JSON yang sudah diproses
     """
@@ -234,7 +234,8 @@ def export_analisis_from_json(json_data, output_filename=None):
             output_filename = f"Analisis_Pertumbuhan_Anak_{timestamp}.xlsx"
 
         # Ensure output directory exists
-        output_dir = "exports"
+        if output_dir is None:
+            output_dir = "exports"
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, output_filename)
 

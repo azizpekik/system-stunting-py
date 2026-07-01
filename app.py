@@ -8,7 +8,6 @@ import uuid
 app = Flask(__name__)
 
 # Configuration for both development and production
-app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sitrek_stunting_secret_key_2024')
 
@@ -17,12 +16,19 @@ is_railway = os.environ.get('RAILWAY_ENVIRONMENT', '') != ''
 is_vercel = os.environ.get('VERCEL_ENV', '') != ''
 is_serverless = is_railway or is_vercel
 
+# Use /tmp for serverless platforms (read-only filesystem otherwise)
+if is_vercel or is_railway:
+    app.config['UPLOAD_FOLDER'] = '/tmp/uploads'
+    app.config['EXPORT_FOLDER'] = '/tmp/exports'
+else:
+    app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
+    app.config['EXPORT_FOLDER'] = 'exports'
+
 # Server-side storage for export data (in-memory, works on serverless within same instance)
 export_data_store = {}
 
 # Initialize session
 if is_vercel:
-    # Vercel serverless: use default cookie session (no Flask-Session needed)
     pass
 else:
     from flask_session import Session
@@ -36,8 +42,10 @@ else:
     os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
     sess = Session(app)
 
-# Ensure upload directory exists
+# Ensure writable directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+if 'EXPORT_FOLDER' in app.config:
+    os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 
 @app.route('/')
 def index():
@@ -205,7 +213,7 @@ def export_analisis():
         filename = f"Analisis_Pertumbuhan_Anak_{timestamp}.xlsx"
 
         # Export to Excel using the export function
-        success, result = export_analisis_from_json(filtered_data, filename)
+        success, result = export_analisis_from_json(filtered_data, filename, app.config['EXPORT_FOLDER'])
 
         if success:
             # Return the generated file for download
