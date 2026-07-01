@@ -1,4 +1,6 @@
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from flask import Flask
+app = Flask(__name__)
 
-from app import app
+@app.route('/')
+def index():
+    return 'OK - SiTrack Vercel Test'
