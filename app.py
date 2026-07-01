@@ -13,9 +13,10 @@ app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sitrek_stunting_secret_key_2024')
 
-# Railway-specific configurations
+# Platform-specific configurations (Railway / Vercel)
 is_railway = os.environ.get('RAILWAY_ENVIRONMENT', '') != ''
-if is_railway:
+is_vercel = os.environ.get('VERCEL_ENV', '') != ''
+if is_railway or is_vercel:
     app.config['SESSION_FILE_DIR'] = '/tmp/flask_sessions'
 else:
     app.config['SESSION_FILE_DIR'] = 'flask_sessions'

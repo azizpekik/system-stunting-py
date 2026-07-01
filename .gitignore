@@ -120,14 +120,27 @@ dmypy.json
 
 # Flask
 uploads/
+
+# Ignore xlsx/xls except in data_template (needed for download-template)
 *.xlsx
 *.xls
+!data_template/*.xlsx
+!data_template/*.xls
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# Project specific
+flask_sessions/
+exports/
+.claude/
+output_*.json
+
+# Vercel
+.vercel/
 
 # macOS
 .DS_Store
