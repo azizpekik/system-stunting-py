@@ -2,7 +2,6 @@ import sys, os, traceback
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask
-
 app = Flask(__name__)
 import_error = None
 
@@ -13,6 +12,7 @@ except Exception:
     import_error = traceback.format_exc()
 
 if import_error:
+    app = Flask(__name__)
     @app.route('/')
     @app.route('/<path:path>')
     def error_page(path=''):
